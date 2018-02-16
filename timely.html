@@ -1,0 +1,162 @@
+<div id="console">
+</div>
+
+<script>
+
+
+var timers = JSON.parse(localStorage[new Date().toDateString()] || "{}"),
+    currentTimer = -1,
+    currentStartTime = newTime(),
+    currentEndTime = newTime(),
+    instance;
+    
+function timeLocale (m) {
+    return new Date(m).toUTCString().match(/([0-9]{2}):([0-9]{2}):([0-9]{2})/g)[0];
+}
+function display (timers) {
+    var ans = [],
+        total = 0;
+        
+    for (timer in timers) total += timers[timer];
+    
+    for (timer in timers) {
+        if (timer != -1)
+            ans.push(timer + "-" + timeLocale(timers[timer]) + " " + (Math.round(timers[timer] / total * 100) + "%"))
+    }
+    return ans.join('\n');
+}
+function newTime () {
+    return new Date().getTime();
+}
+function update () {//updates time in blocks to allow for toggling at anytime
+    currentEndTime = newTime();//update currentEndTime
+
+    timers[currentTimer] = timers[currentTimer] || 0;
+    
+    if (currentTimer !== -1)
+        timers[currentTimer] += currentEndTime - currentStartTime;
+    
+    currentStartTime = newTime();//update currentStartTime
+    localStorage[new Date().toDateString()] = JSON.stringify(timers);
+}
+
+
+document.addEventListener('keydown',function (e) {
+    var keys = "qwertyuiopasdfghjklzxcvbnm0123456789";
+    if (keys.indexOf(e.key) !== -1) {
+        update();
+        currentTimer = e.key;
+    }
+    if (e.key == " ") currentTimer = -1;
+});
+window.onblur = function () {
+    clearInterval(instance);
+};
+
+window.onfocus = function () {
+    instance = setInterval(timerStepper,50);
+};
+
+instance = setInterval(timerStepper,50);
+
+function timerStepper () {
+    update();
+    //console.log('running');
+    document.getElementById("console").innerText = display(timers);
+}
+
+
+/*
+var timers = {},
+    disabledTimer = 0,
+    currentTimer = 0,
+    currentStartTime = 0,
+    currentEndTime = 0;
+    
+function newTime () {
+    return new Date().getTime();
+}
+function update () {//updates time in blocks to allow for toggling at anytime
+    timers[currentTimer] = timers[currentTimer] || 0;
+    timers[currentTimer] += currentEndTime - currentStartTime;
+    
+    currentStartTime = newTime();//update currentStartTime
+}
+
+document.addEventListener('keydown',function (e) {
+    if (currentTimer === e.key) {//if timer is activated
+        if (disabledTimer !== e.key) {//and if timer isn't disabled
+            currentEndTime = newTime();//update currentEndTime
+        }
+    }
+    else {
+        currentEndTime = newTime();//update currentEndTime
+        update();
+    }
+    currentTimer = e.key;
+});
+setInterval(function () {
+    if (disabledTimer !== currentTimer) {//update if timer isn't disabled
+        currentEndTime = newTime();//update currentEndTime
+        update();
+    }
+    document.getElementById("console").innerText = JSON.stringify(timers);
+},100);
+/*
+
+var timers = {},
+    disabledTimer = 0,
+    currentTimer = 0,
+    currentStartTime = 0,
+    currentEndTime = 0;
+    
+function newTime () {
+    return new Date().getTime();
+}
+function update () {//updates time in blocks to allow for toggling at anytime
+    timeElapsed[currentTimer] = timeElapsed[currentTimer] || 0;
+    timeElapsed[currentTimer] += currentEndTime - currentStartTime;
+    
+    currentStartTime = newTime();//update currentStartTime
+}
+
+document.addEventListener('keydown',function (e) {
+    if (currentTimer === e.key) {//if timer is activated
+        if (disabledTimer !== e.key) {//and if timer isn't disabled
+            currentEndTime = newTime();//update currentEndTime
+        }
+    }
+    else {
+        currentEndTime = newTime();//update currentEndTime
+        update();
+    }
+});
+
+
+/*
+var currentTimer = -1,
+    currentStartTime = 0,
+    currentEndTime = 0,
+    timeElapsed = {};
+
+document.addEventListener('keydown',function (e) {
+    currentEndTime = new Date().getTime();
+    timeElapsed[currentTimer] = (timeElapsed[currentTimer] || 0) + currentEndTime - currentStartTime;
+    
+    currentTimer = e.key;
+    currentStartTime = new Date().getTime();
+    
+    
+});
+
+setInterval(function () {
+    document.getElementById("console").innerText = JSON.stringify(timeElapsed);
+    
+    currentEndTime = new Date().getTime();
+    timeElapsed[currentTimer] = (timeElapsed[currentTimer] || 0) + currentEndTime - currentStartTime;
+    
+    
+    currentStartTime = new Date().getTime();
+    
+},2000);*/
+</script>
