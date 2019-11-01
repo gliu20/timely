@@ -62,7 +62,7 @@ instance = setInterval(timerStepper,50);
 function timerStepper () {
     update();
     //console.log('running');
-    document.getElementById("console").innerText = display(timers);
+    document.getElementById("console").innerText = "Press a key (alphanumeric) to start a timer. Press space to stop.\n"+display(timers);
 }
 
 
