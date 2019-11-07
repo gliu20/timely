@@ -1,162 +1,113 @@
-<div id="console">
-</div>
 
+<p>Press a key (alphanumeric) to start a timer. Press space to stop.</p>
+<div id="console"></div><br>
+<button onclick="timely.timers = {}">Clear timers</button>
 <script>
+let timely = {};
 
-
-var timers = JSON.parse(localStorage[new Date().toDateString()] || "{}"),
-    currentTimer = -1,
-    currentStartTime = newTime(),
-    currentEndTime = newTime(),
-    instance;
-    
-function timeLocale (m) {
-    return new Date(m).toUTCString().match(/([0-9]{2}):([0-9]{2}):([0-9]{2})/g)[0];
-}
-function display (timers) {
-    var ans = [],
-        total = 0;
-        
-    for (timer in timers) total += timers[timer];
-    
-    for (timer in timers) {
-        if (timer != -1)
-            ans.push(timer + "-" + timeLocale(timers[timer]) + " " + (Math.round(timers[timer] / total * 100) + "%"))
-    }
-    return ans.join('\n');
-}
-function newTime () {
-    return new Date().getTime();
-}
-function update () {//updates time in blocks to allow for toggling at anytime
-    currentEndTime = newTime();//update currentEndTime
-
-    timers[currentTimer] = timers[currentTimer] || 0;
-    
-    if (currentTimer !== -1)
-        timers[currentTimer] += currentEndTime - currentStartTime;
-    
-    currentStartTime = newTime();//update currentStartTime
-    localStorage[new Date().toDateString()] = JSON.stringify(timers);
+timely.now = function () {
+	return Date.now();
 }
 
-
-document.addEventListener('keydown',function (e) {
-    var keys = "qwertyuiopasdfghjklzxcvbnm0123456789";
-    if (keys.indexOf(e.key) !== -1) {
-        update();
-        currentTimer = e.key;
-    }
-    if (e.key == " ") currentTimer = -1;
-});
-window.onblur = function () {
-    clearInterval(instance);
-};
-
-window.onfocus = function () {
-    instance = setInterval(timerStepper,50);
-};
-
-instance = setInterval(timerStepper,50);
-
-function timerStepper () {
-    update();
-    //console.log('running');
-    document.getElementById("console").innerText = "Press a key (alphanumeric) to start a timer. Press space to stop.\n"+display(timers);
+timely.millisecondsToDisplay = function (ms) {
+	return new Date(ms)
+		.toUTCString() // standard format w/ hr:mins:seconds in its string
+		.match(/(\d{2}):(\d{2}):(\d{2})/g)[0];// select the hr:mins:sec part 
 }
 
+timely.updateTimer = function () {
 
-/*
-var timers = {},
-    disabledTimer = 0,
-    currentTimer = 0,
-    currentStartTime = 0,
-    currentEndTime = 0;
-    
-function newTime () {
-    return new Date().getTime();
-}
-function update () {//updates time in blocks to allow for toggling at anytime
-    timers[currentTimer] = timers[currentTimer] || 0;
-    timers[currentTimer] += currentEndTime - currentStartTime;
-    
-    currentStartTime = newTime();//update currentStartTime
+	timely.endTime = timely.now();
+	timely.set("endTime",timely.now());
+	
+	// make sure timer exists; if not make timer obj
+	timely.timers[timely.currentTimer] = 
+		timely.timers[timely.currentTimer] || {};
+	timely.timers[timely.currentTimer].duration = 
+		timely.timers[timely.currentTimer].duration || 0;
+	
+	// "none" is keyword for no timer running
+	if (timely.currentTimer !== "none") {
+		timely.timers[timely.currentTimer].duration += 
+			timely.endTime - timely.startTime;
+	}
+	
+	timely.set("timers",timely.timers);
+	
+	timely.startTime = timely.now();
+	timely.set("startTime",timely.now());
+	
+	timely.print();
 }
 
-document.addEventListener('keydown',function (e) {
-    if (currentTimer === e.key) {//if timer is activated
-        if (disabledTimer !== e.key) {//and if timer isn't disabled
-            currentEndTime = newTime();//update currentEndTime
-        }
-    }
-    else {
-        currentEndTime = newTime();//update currentEndTime
-        update();
-    }
-    currentTimer = e.key;
-});
-setInterval(function () {
-    if (disabledTimer !== currentTimer) {//update if timer isn't disabled
-        currentEndTime = newTime();//update currentEndTime
-        update();
-    }
-    document.getElementById("console").innerText = JSON.stringify(timers);
-},100);
-/*
+timely.switchTimer = function (timerId) {
+	// finish logging times for previous timer
+	timely.updateTimer();
 
-var timers = {},
-    disabledTimer = 0,
-    currentTimer = 0,
-    currentStartTime = 0,
-    currentEndTime = 0;
-    
-function newTime () {
-    return new Date().getTime();
+	timely.currentTimer = timerId;
+	timely.set("currentTimer",timerId);
+	
+	// create and start logging times for new timer
+	timely.updateTimer();
 }
-function update () {//updates time in blocks to allow for toggling at anytime
-    timeElapsed[currentTimer] = timeElapsed[currentTimer] || 0;
-    timeElapsed[currentTimer] += currentEndTime - currentStartTime;
-    
-    currentStartTime = newTime();//update currentStartTime
+
+timely.get = function (key) {
+	let result = localStorage.getItem("timely-" + key); 
+	
+	try {
+		result = JSON.parse(result);
+	}
+	catch (err) {
+		// probably not an object so don't worry about parsing it
+		result = result;
+	}
+	
+	return result;
+}
+
+timely.set = function (key,value) {
+
+	// stringify for storage if it is an object
+	if (typeof value === "object") {
+		value = JSON.stringify(value);
+	}
+	
+	localStorage.setItem("timely-" + key, value); 
+}
+
+timely.print = function () {
+	var timers = timely.timers,
+		timeLocale = timely.millisecondsToDisplay;
+	var ans = [],
+		total = 0;
+
+	for (timer in timers)
+		total += timers[timer].duration;
+
+	for (timer in timers) 
+		ans.push(
+			timer + " - " + 
+			timeLocale(timers[timer].duration) + " " + 
+			((timers[timer].duration / total * 100).toFixed(3) + "%")
+		)
+	
+	document.getElementById("console").innerText = ans.join('\n');
 }
 
 document.addEventListener('keydown',function (e) {
-    if (currentTimer === e.key) {//if timer is activated
-        if (disabledTimer !== e.key) {//and if timer isn't disabled
-            currentEndTime = newTime();//update currentEndTime
-        }
-    }
-    else {
-        currentEndTime = newTime();//update currentEndTime
-        update();
-    }
+	var keys = "qwertyuiopasdfghjklzxcvbnm0123456789";
+	
+	// only allow switching to alphanumeric timers
+	if (keys.indexOf(e.key) !== -1) timely.switchTimer(e.key);
+	if (e.key == " ") timely.switchTimer("none");
 });
 
+timely.timers = timely.get("timers") || {};
+timely.currentTimer = timely.get("currentTimer") || "none";
+timely.startTime = timely.get("startTime") || timely.now();
+timely.endTime = timely.get("endTime") || timely.now();
 
-/*
-var currentTimer = -1,
-    currentStartTime = 0,
-    currentEndTime = 0,
-    timeElapsed = {};
+timely.updateTimer();
+setInterval(timely.updateTimer,100);
 
-document.addEventListener('keydown',function (e) {
-    currentEndTime = new Date().getTime();
-    timeElapsed[currentTimer] = (timeElapsed[currentTimer] || 0) + currentEndTime - currentStartTime;
-    
-    currentTimer = e.key;
-    currentStartTime = new Date().getTime();
-    
-    
-});
-
-setInterval(function () {
-    document.getElementById("console").innerText = JSON.stringify(timeElapsed);
-    
-    currentEndTime = new Date().getTime();
-    timeElapsed[currentTimer] = (timeElapsed[currentTimer] || 0) + currentEndTime - currentStartTime;
-    
-    
-    currentStartTime = new Date().getTime();
-    
-},2000);*/
 </script>
